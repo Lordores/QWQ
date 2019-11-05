@@ -1,0 +1,252 @@
+<!-- Licensed under a BSD license. See license.html for license -->
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Three.js - Load .OBJ</title>
+    <!--<style>
+    html, body {
+        margin: 0;
+        height: 100%;
+    }
+    #c {
+        width: 100%;
+        height: 100%;
+        display: block;
+    }
+    </style>-->
+  </head>
+  <body>
+    <div id="container"></div>
+    <canvas id="c"></canvas>
+    <script type="module">
+    import * as THREE from './webgl/build/three.module.js';
+    import {OrbitControls} from './webgl/examples/jsm/controls/OrbitControls.js';
+    import {OBJLoader2} from './webgl/examples/jsm/loaders/OBJLoader2.js';
+    import { GUI } from './webgl/examples/jsm/libs/dat.gui.module.js';
+    function main() {
+      var canvas,renderer;
+      var camera;
+      var controls,center;
+      var scene;
+      var light1,light2;
+      var mesh;
+      initThree();
+      initCamera();
+      initControls();
+      initScene();
+      initLight();
+      initObject();
+      initGUI();
+      render();
+
+      function initThree() {
+        canvas = document.querySelector('#c');
+        renderer = new THREE.WebGLRenderer({canvas});
+      }
+      function initCamera() {
+        const fov = 45;
+        const aspect = 2;  // the canvas default
+        const near = 0.1;
+        const far = 100;
+        camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
+        camera.position.set(0, 0, 20);
+      }
+      function initScene() {
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color('white');
+      }
+      function initLight() {
+          const skyColor = 0xFFFFFF;  
+          const groundColor = 0xFFFFFF;  
+          const intensity = 1;
+          light1 = new THREE.HemisphereLight(skyColor, groundColor, intensity);
+          scene.add(light1);
+
+          const color = 0xFFFFFF;
+          light2 = new THREE.DirectionalLight(color, intensity);
+          light2.position.set(0, 10, 0);
+          light2.target.position.set(-5, 0, 0);
+          scene.add(light2);
+          scene.add(light2.target);
+      }
+      function initObject(){
+          var A_Geometry;
+          var B_Geometry;
+          const objLoader = new OBJLoader2();
+          objLoader.load('01.obj', obj);
+          function obj(object3D) {
+            A_Geometry = object3D.children[0].geometry;
+            A_Geometry.scale(20,20,20);
+            center = getCenterPoint(A_Geometry);
+            A_Geometry.translate ( -center.x, -center.y, -center.z ); 
+            var material = new THREE.MeshLambertMaterial({
+              color: 0xff0000,
+              flatShading: false,
+              morphTargets: true
+            }); 
+
+            //var A_mesh = new THREE.Mesh(A_Geometry, material);
+            //scene.add(A_mesh);
+            //var helper = new THREE.BoundingBoxHelper(mesh, 0xff0000);
+            //helper.update();
+            const objLoader2 = new OBJLoader2();
+            objLoader2.load('02.obj', obj2);
+            function obj2(object3D) {
+              B_Geometry = object3D.children[0].geometry;
+              B_Geometry.scale(20,20,20);
+              center = getCenterPoint(B_Geometry);
+              B_Geometry.translate ( -center.x, -center.y, -center.z ); 
+              A_Geometry.morphAttributes[ 0 ] = B_Geometry.attributes;
+              mesh = new THREE.Mesh(A_Geometry, material);
+              scene.add(mesh);
+              //var B_mesh = new THREE.Mesh(B_Geometry, material);
+              //scene.add(B_mesh);
+            }
+          }
+      }
+      function initControls() {
+        controls = new OrbitControls(camera, canvas);
+        controls.target.set(0,0,0);
+        controls.update();
+      }
+      function initGUI() {
+      // Set up dat.GUI to control targets
+        var params = {
+          Spherify: 0,
+          Twist: 0,
+        };
+        var gui = new GUI();
+        var folder = gui.addFolder( 'Morph Targets' );
+
+        folder.add( params, 'Spherify', 0, 1 ).step( 0.01 ).onChange( function ( value ) {
+          mesh.morphTargetInfluences[ 0 ] = value;
+        } );
+        folder.open();
+      }
+      function render() {
+        if (resizeRendererToDisplaySize(renderer)) {
+          const canvas = renderer.domElement;
+          camera.aspect = canvas.clientWidth / canvas.clientHeight;
+          camera.updateProjectionMatrix();
+        }
+        renderer.render(scene, camera);
+        requestAnimationFrame(render);
+        }
+      function resizeRendererToDisplaySize(renderer) {
+        const canvas = renderer.domElement;
+        const width = canvas.clientWidth;
+        const height = canvas.clientHeight;
+        const needResize = canvas.width !== width || canvas.height !== height;
+        if (needResize) {
+          renderer.setSize(width, height, false);
+        }
+        return needResize;
+      }
+      function getCenterPoint(geometry) {
+          center = new THREE.Vector3();
+          geometry.computeBoundingBox();   
+          geometry.boundingBox.center(center);
+          return center;
+      }
+
+    }
+    var container, camera, scene, renderer, mesh
+    function init() {
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color( 0x8FBCD4 );
+
+      scene.add( new THREE.AmbientLight( 0x8FBCD4, 0.4 ) );
+
+      container = document.getElementById( 'container' );
+      camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 20 );
+      camera.position.z = 8;
+      scene.add( camera );
+      createGeometry(); 
+      var controls = new OrbitControls( camera, container );
+
+      var pointLight = new THREE.PointLight( 0xffffff, 1 );
+      camera.add( pointLight );  
+
+      renderer = new THREE.WebGLRenderer( { antialias: true } );
+      renderer.setPixelRatio( window.devicePixelRatio );
+      renderer.setSize( window.innerWidth, window.innerHeight );
+      renderer.setAnimationLoop( function () {
+        renderer.render( scene, camera );
+      } );
+
+      container.appendChild( renderer.domElement );
+      window.addEventListener( 'resize', onWindowResize, false );
+			function createGeometry() {
+        var A_Geometry,B_Geometry;
+        const objLoader = new OBJLoader2();
+        
+        objLoader.load('01.obj', obj1);
+        function obj1(object3D) {
+          A_Geometry = object3D.children[0].geometry;
+          A_Geometry.scale(8,8,8);
+          var center = getCenterPoint(A_Geometry);
+          A_Geometry.translate ( -center.x, -center.y, -center.z ); 
+
+          const objLoader2 = new OBJLoader2();
+          objLoader2.load('02.obj', obj2);
+          function obj2(object3D) {
+            B_Geometry = object3D.children[0].geometry;
+            B_Geometry.scale(8,8,8);
+            var center = getCenterPoint(B_Geometry);
+            B_Geometry.translate ( -center.x, -center.y, -center.z );
+
+            var geometry_A =  new THREE.Geometry().fromBufferGeometry(A_Geometry);
+            var geometry_B =  new THREE.Geometry().fromBufferGeometry(B_Geometry);
+
+            geometry_A.morphTargets.push( { name: "target0", vertices: geometry_B.vertices } );
+            geometry_A  = new THREE.BufferGeometry().fromGeometry( geometry_A );
+
+            var material = new THREE.MeshPhongMaterial( {
+                color: 0xff0000,
+                flatShading: true,
+                morphTargets: true
+              } );
+              
+            mesh = new THREE.Mesh( geometry_A, material );
+            scene.add( mesh );
+            initGUI();
+          }
+        }
+      }
+
+      function initGUI() {
+        // Set up dat.GUI to control targets
+        var params = {
+          influence1: 0,
+        };
+        var gui = new GUI();
+        var folder = gui.addFolder( 'Morph Targets' );
+
+        folder.add( params, 'influence1', 0, 1 ).step( 0.01 ).onChange( function ( value ) {
+
+          mesh.morphTargetInfluences[0] = value;
+
+        } );
+        folder.open();
+      }
+
+      function onWindowResize(){
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize( window.innerWidth, window.innerHeight );
+      }
+      function getCenterPoint(geometry) {
+        var center = new THREE.Vector3();
+        geometry.computeBoundingBox();   
+        geometry.boundingBox.center(center);
+        return center;
+      }
+    }
+
+    init()
+
+    </script>
+</body>
+</html>
